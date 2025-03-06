@@ -1,0 +1,65 @@
+void Integrations.create_purchase_order(string PO_ID)
+{
+	PO_ID = "PO/5";
+	org_ID = "869542087";
+	sample_PO = Purchase_Order[Order_ID == PO_ID];
+	/* ===== Step 1: Set up the necessary PO details from the Creator app ===== */
+	// fetch vendor from books by name
+	vendor_name = encodeUrl("Britam");
+	vendor_check = zoho.books.getRecords("vendors",org_ID,"vendor_name=" + vendor_name,"zoho_books_connection");
+	vendor_data = vendor_check.get("contacts");
+	// check if vendor exists
+	if(!vendor_data.isEmpty())
+	{
+		vendor_id = vendor_data.get(0).get("contact_id");
+		info "Vendor found with ID: " + vendor_id;
+	}
+	else
+	{
+		info "Vendor not found in Zoho Books. Please create the vendor before proceeding.";
+		return;
+		// Exit the script if vendor is not found
+	}
+	po_details = Map();
+	po_details.put("purchaseorder_number",sample_PO.Order_ID);
+	po_details.put("vendor_id","5742741000000105364");
+	po_details.put("date",sample_PO.Order_Date);
+	po_details.put("delivery_date",sample_PO.Order_Date);
+	items_list = list();
+	// line items in the PO
+	for each  item in sample_PO.Items
+	{
+		// check if item exists in Books, if not create it there
+		item_name = item.Product.Product_Name;
+		item_check = zoho.books.getRecords("items",org_ID,"name=" + item_name,"zoho_books_connection");
+		found_items = item_check.get("items");
+		if(found_items.isEmpty())
+		{
+			// Item details for creation in Zoho Books
+			new_item_data = Map();
+			new_item_data.put("name",item_name);
+			new_item_data.put("rate",item.Unit_Price);
+			// Create the item in Zoho Books
+			create_item_response = zoho.books.createRecord("items",org_ID,new_item_data,"zoho_books_connection");
+		}
+		item_map = Map();
+		item_map.put("description",item_name);
+		item_map.put("rate",item.Unit_Price);
+		item_map.put("quantity",item.Quantity);
+		item_map.put("account_id","5742741000000000400");
+		items_list.add(item_map);
+	}
+	po_details.put("line_items",items_list);
+	/* ===== Step 2: Push PO to Zoho Books ===== */
+	response = zoho.books.createRecord("purchaseorders","869542087",po_details,"zoho_books_connection");
+	info response;
+	/* ===== Step 3: Check response ===== */
+	if(response.get("code") == 0)
+	{
+		info "Purchase Order created successfully in Zoho Books!";
+	}
+	else
+	{
+		info "Failed to create Purchase Order. Error: " + response.get("message");
+	}
+}
