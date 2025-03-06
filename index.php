@@ -24,6 +24,7 @@ if (!empty($_GET['q'])) {
     <style>
         html, body {
             height: 100%;
+            width: 2px;
             margin: 0;
             padding: 0;
             font-family: 'Karla', sans-serif;
